@@ -436,13 +436,12 @@ async function photonSearch(query, showList = true) {
 
   if (token !== searchToken) return [];
 
-  const params = new URLSearchParams({
-    q: query,
-    limit: '8',
-    lat: '50.08',
-    lon: '14.43',
-    lang: 'cs'
-  });
+const params = new URLSearchParams({
+  q: query,
+  limit: '8',
+  lat: '50.08',
+  lon: '14.43'
+});
 
   lastSearchAt = Date.now();
 
@@ -450,11 +449,20 @@ async function photonSearch(query, showList = true) {
     signal: searchAbort.signal
   });
 
-  if (!r.ok) {
-    throw Error(
-      'Vyhledávání momentálně nefunguje (' + r.status + ').'
-    );
-  }
+if (!r.ok) {
+  const errorText = await r.text();
+
+  console.error('Photon API:', {
+    status: r.status,
+    url: r.url,
+    response: errorText
+  });
+
+  throw Error(
+    'Vyhledávání selhalo (' + r.status + '). ' +
+    errorText.slice(0, 150)
+  );
+}
 
   const data = await r.json();
 
