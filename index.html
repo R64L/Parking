@@ -77,6 +77,7 @@ const PHOTON='https://photon.komoot.io/api/';
 let features=[],zoneLayer=L.geoJSON().addTo(map),zoneAbort=null,zoneToken=0;
 let gpsWatch=null,gpsPosition=null,gpsMarker=null,follow=false;
 let destination=null,destinationMarker=null,destinationCircle=null,routeLayer=null,selectedZone=null;
+let pendingRouteTarget=null;
 let navigationTarget=null,routePoints=[],routeProgress=0,routeCum=[],routeTotalMeters=0,routeDurationSeconds=0,routeActive=false,routeCall=0;
 let currentSuggestions=[],lastSuggestionQuery='',searchAbort=null,searchTimer=null,searchToken=0,lastSearchAt=0;
 const normalize=s=>String(s||'').toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
@@ -141,8 +142,33 @@ function zoneColor(f){const z=zoneInfo(f);return z.hours===null?'#9298a0':z.hour
 function renderZones(){zoneLayer.clearLayers();zoneLayer=L.geoJSON({type:'FeatureCollection',features},{style:f=>({color:zoneColor(f),weight:3,opacity:.88,fillColor:zoneColor(f),fillOpacity:.22}),onEachFeature:(f,layer)=>layer.on('click',e=>{L.DomEvent.stopPropagation(e);selectedZone={lat:e.latlng.lat,lng:e.latlng.lng};navigationTarget=selectedZone;const z=zoneInfo(f);$('zoneTitle').textContent=z.name;$('zoneInfo').textContent='Aktuální čas v Praze: '+new Intl.DateTimeFormat('cs-CZ',{timeZone:'Europe/Prague',weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date())+'\nProvozní dny a hodiny regulace: NEOVĚŘENO.\nLimit návštěvníka: '+(z.hours===null?'neověřený':z.hours+' h (orientačně)')+'.\n'+z.note+' Neodvozuj bezplatné parkování ze soboty či víkendu. Rozhoduje značení na místě.'; $('zoneInfo').style.whiteSpace='pre-line';$('details').style.display='block';})}).addTo(map);}
 async function loadZones(){if(map.getZoom()<13){features=[];renderZones();status('Přibliž mapu pro zobrazení parkovacích zón.');return;}if(zoneAbort)zoneAbort.abort();zoneAbort=new AbortController();const token=++zoneToken,b=map.getBounds();const bb=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(',');try{let all=[],offset=0;for(let i=0;i<8;i++){const q=new URLSearchParams({where:'1=1',geometry:bb,geometryType:'esriGeometryEnvelope',inSR:'4326',outSR:'4326',spatialRel:'esriSpatialRelIntersects',outFields:'OBJECTID,ZPS_ID,TYPZONY,KODMC_T,TARIFTAB',returnGeometry:'true',f:'geojson',resultOffset:String(offset),resultRecordCount:'1000'});const r=await fetch(ZONE_API+'?'+q,{signal:zoneAbort.signal});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data.features))throw Error(data.error?.message||'Neplatná data');all.push(...data.features);offset+=data.features.length;if(data.features.length<1000&&!data.exceededTransferLimit)break;if(i===7)throw Error('Příliš mnoho úseků, přibliž mapu');}if(token===zoneToken){features=all;renderZones();status('Načteno '+features.length+' úseků. Délky stání jsou orientační.');}}catch(e){if(e.name!=='AbortError')status('Parkovací data nejsou dostupná: '+e.message);}}
 let zonesTimer;map.on('moveend',()=>{clearTimeout(zonesTimer);zonesTimer=setTimeout(loadZones,450);});$('hours').onchange=renderZones;
-function onPosition(p){const xy=[p.coords.latitude,p.coords.longitude];const first=!gpsPosition;gpsPosition={lat:xy[0],lng:xy[1]};if(!gpsMarker){gpsMarker=L.circleMarker(xy,{radius:9,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1}).addTo(map);}else gpsMarker.setLatLng(xy);if(routeActive)updateRouteProgress(p.coords.accuracy);if(follow){if(first)map.setView(xy,16);else map.panTo(xy,{animate:true});}}
-function gpsStart(){if(!navigator.geolocation){status('GPS není dostupná.');return;}follow=true;$('gps').textContent='◉';if(gpsWatch!==null){if(gpsPosition)map.setView(gpsPosition,16);return;}status('Zapínám GPS…');gpsWatch=navigator.geolocation.watchPosition(onPosition,e=>{status('GPS: '+e.message);if(e.code===1)gpsStop();},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});}
+function onPosition(p){
+ const xy=[p.coords.latitude,p.coords.longitude];
+ const first=!gpsPosition;
+ gpsPosition={lat:xy[0],lng:xy[1]};
+ if(!gpsMarker){
+  gpsMarker=L.circleMarker(xy,{radius:9,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1}).addTo(map);
+ }else gpsMarker.setLatLng(xy);
+ if(routeActive)updateRouteProgress(p.coords.accuracy);
+ if(follow){if(first)map.setView(xy,16);else map.panTo(xy,{animate:true});}
+ // První stisk Trasa vyčká na GPS, pak spustí výpočet automaticky.
+ if(pendingRouteTarget){
+  const target=pendingRouteTarget;
+  pendingRouteTarget=null;
+  routeTo(target);
+ }
+}
+function gpsStart(){
+ if(!navigator.geolocation){pendingRouteTarget=null;status('GPS není dostupná.');return;}
+ follow=true;$('gps').textContent='◉';
+ if(gpsWatch!==null){if(gpsPosition)map.setView(gpsPosition,16);return;}
+ status('Zapínám GPS…');
+ gpsWatch=navigator.geolocation.watchPosition(onPosition,e=>{
+  pendingRouteTarget=null;
+  status('GPS: '+e.message+' Zkontroluj oprávnění polohy a zkus to znovu.');
+  if(e.code===1)gpsStop();
+ },{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+}
 function gpsStop(){if(gpsWatch!==null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;follow=false;$('gps').textContent='◎';}
 $('gps').onclick=()=>{if(gpsWatch===null||!follow)gpsStart();else gpsStop();};map.on('dragstart',()=>{follow=false;$('gps').textContent='◎';});
 function segmentProjection(pos,a,b){
@@ -179,7 +205,8 @@ function updateRouteProgress(accuracy=25){
  if(navigationTarget&&map.distance(gpsPosition,[navigationTarget.lat,navigationTarget.lng])<30&&accuracy<=35){$('instruction').textContent='Jsi poblíž cíle.';}
 }
 async function routeTo(to){
- if(!gpsPosition){status('Nejdřív zapni GPS a počkej na polohu, potom znovu stiskni Trasa.');gpsStart();return;}
+ if(!gpsPosition){pendingRouteTarget={...to};status('Čekám na polohu GPS, potom trasu automaticky vypočítám…');gpsStart();return;}
+ pendingRouteTarget=null;
  const token=++routeCall;
  navigationTarget=to;
  status('Počítám trasu autem…');
@@ -211,6 +238,7 @@ async function routeTo(to){
  }catch(e){if(token===routeCall)status('Trasu se nepodařilo vypočítat: '+e.message);}
 }
 function stopRoute(){
+ pendingRouteTarget=null;
  routeCall++;if(routeLayer)map.removeLayer(routeLayer);
  routeLayer=null;routePoints=[];routeCum=[];routeProgress=0;routeActive=false;
  $('stopRoute').hidden=true;$('instruction').textContent='';$('instruction').hidden=true;
