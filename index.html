@@ -328,9 +328,10 @@ function selectPlace(f) {
 
   destinationMarker = null;
   destinationCircle = null;
-  destination = null;
+destination = null;
+selectedZone = null;
 
-  stopRoute();
+stopRoute();
 
   const info = label(f);
   $('address').value = info.main;
@@ -989,14 +990,14 @@ function stopRoute() {
 }
 
 $('navigate').onclick = () => {
-  if (!destination) {
-    status(
-      'Nejdřív vyber konkrétní adresu nebo podnik.'
-    );
+  const target = destination || selectedZone;
+
+  if (!target) {
+    status('Nejdřív vyber cíl na mapě nebo vyhledej adresu.');
     return;
   }
 
-  routeTo(destination);
+  routeTo(target);
 };
 
 $('stopRoute').onclick = () => {
@@ -1018,6 +1019,21 @@ $('closeDetails').onclick = () => {
   $('details').style.display = 'none';
 };
 
+map.on('click', e => {
+  // Kliknutí na parkovací zónu má vlastní obsluhu.
+  // Proto nebudeme nahrazovat již vybraný úsek.
+  if ($('details').style.display === 'block') return;
+
+  selectedZone = {
+    lat: e.latlng.lat,
+    lng: e.latlng.lng
+  };
+
+  $('summary').textContent = '📍 Vybrané místo na mapě';
+
+  status('Místo vybráno. Stiskni Trasa pro navigaci.');
+});
+ 
 loadZones();
 
 </script>
