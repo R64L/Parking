@@ -42,6 +42,17 @@
 .dest{height:23px;width:23px;background:#ea4335;border:4px solid #fff;border-radius:50%;box-shadow:0 0 0 5px #ea433548,0 2px 12px #0005}
 .leaflet-control-attribution{font-size:9px!important}
 @media(max-height:650px){#rightTools{bottom:150px}#bottom{padding:8px}#filters{margin-top:5px}}
+
+#ttTools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px;pointer-events:auto}
+#ttTools button{border-radius:10px;background:#fff;color:#1967d2;min-height:38px;padding:8px 10px;box-shadow:0 2px 10px #1f293733;font-size:12px;font-weight:650}
+#ttTools button.active{background:#d9e9ff;color:#1251a5}
+#settingsBackdrop{display:none;position:fixed;inset:0;z-index:1600;background:#0007;align-items:center;justify-content:center;padding:18px}
+#settingsPanel{background:white;border-radius:16px;max-width:410px;width:100%;padding:18px;box-shadow:0 10px 35px #0004}
+#settingsPanel input{width:100%;min-height:42px;border:1px solid #aebaca;border-radius:9px;padding:10px;font-size:16px;margin:9px 0}
+#settingsPanel p{font-size:13px;line-height:1.5;color:#566270}
+#settingsActions{display:flex;gap:8px;justify-content:flex-end}
+#settingsActions button{padding:10px 12px;border-radius:9px}
+#ttMessage{font-size:11px;color:#5f6368;margin-top:4px}
 </style>
 </head>
 <body>
@@ -54,6 +65,7 @@
     <button class="primary" id="search" title="Vyhledat">Hledat</button>
   </div>
   <div id="suggestions" role="listbox" aria-label="Návrhy míst"></div>
+  <div id="ttTools"><button id="settingsOpen">⚙ TomTom</button><button id="trafficToggle">🚦 Provoz: vyp.</button><button id="incidentsToggle">⚠ Události: vyp.</button></div>
   <div id="filters"><label for="hours">Parkování alespoň</label><select id="hours"><option value="2">2 h</option><option value="3">3 h</option><option value="4">4 h</option><option value="8">8 h</option><option value="24">24 h</option></select></div>
 </div>
 <div id="rightTools"><button class="fab" id="gps" title="GPS – sledovat polohu" aria-label="GPS">◎</button></div>
@@ -63,9 +75,16 @@
  <div id="summary">Vyber cíl nebo zapni GPS</div>
  <div id="instruction" hidden></div>
  <div id="actions"><button id="navigate" class="primary">🚗 Trasa</button><button id="stopRoute" class="secondary" hidden>Ukončit trasu</button></div>
- <div id="status" role="status">Načítám parkovací zóny…</div>
+ <div id="ttMessage"></div><div id="status" role="status">Načítám parkovací zóny…</div>
 </div>
 <div id="dialogBackdrop" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><div id="dialog"><h3 id="dialogTitle">Myslel jsi toto?</h3><p id="dialogText"></p><div id="dialogActions"><button class="secondary" id="dialogNo">Ne</button><button class="primary" id="dialogYes">Ano</button></div></div></div>
+<div id="settingsBackdrop" role="dialog" aria-modal="true" aria-label="TomTom nastavení">
+ <div id="settingsPanel"><h3>TomTom – nastavení</h3>
+ <p>Vlož svůj TomTom API klíč. Uloží se pouze do tohoto prohlížeče na zařízení, nikoliv na GitHub. Veřejná webová aplikace však neumí klíč dokonale ochránit; používej whitelist domény a kontroluj limity.</p>
+ <input id="tomtomKey" type="password" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="TomTom API klíč" aria-label="TomTom API klíč">
+ <div id="settingsActions"><button id="settingsRemove" class="secondary">Smazat klíč</button><button id="settingsClose" class="secondary">Zavřít</button><button id="settingsSave" class="primary">Uložit</button></div>
+ </div>
+</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 'use strict';
@@ -78,6 +97,10 @@ let features=[],zoneLayer=L.geoJSON().addTo(map),zoneAbort=null,zoneToken=0;
 let gpsWatch=null,gpsPosition=null,gpsMarker=null,follow=false;
 let destination=null,destinationMarker=null,destinationCircle=null,routeLayer=null,selectedZone=null;
 let pendingRouteTarget=null;
+let tomtomKey=localStorage.getItem('prahaParkingTomTomKey')||'';
+let trafficLayer=null, incidentsLayer=L.layerGroup().addTo(map), trafficOn=false, incidentsOn=false;
+let lastIncidentLoad=0, rerouteAt=0, offRouteSamples=0, currentRouteTarget=null;
+let pendingRouteAbort=null;
 let navigationTarget=null,routePoints=[],routeProgress=0,routeCum=[],routeTotalMeters=0,routeDurationSeconds=0,routeActive=false,routeCall=0;
 let currentSuggestions=[],lastSuggestionQuery='',searchAbort=null,searchTimer=null,searchToken=0,lastSearchAt=0;
 const normalize=s=>String(s||'').toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
@@ -149,7 +172,7 @@ function onPosition(p){
  if(!gpsMarker){
   gpsMarker=L.circleMarker(xy,{radius:9,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1}).addTo(map);
  }else gpsMarker.setLatLng(xy);
- if(routeActive)updateRouteProgress(p.coords.accuracy);
+ if(routeActive){updateRouteProgress(p.coords.accuracy);maybeReroute(p.coords.accuracy);}
  if(follow){if(first)map.setView(xy,16);else map.panTo(xy,{animate:true});}
  // První stisk Trasa vyčká na GPS, pak spustí výpočet automaticky.
  if(pendingRouteTarget){
@@ -165,7 +188,7 @@ function gpsStart(){
  status('Zapínám GPS…');
  gpsWatch=navigator.geolocation.watchPosition(onPosition,e=>{
   pendingRouteTarget=null;
-  status('GPS: '+e.message+' Zkontroluj oprávnění polohy a zkus to znovu.');
+  status(e.code===1?'Poloha zamítnuta. Povol přístup k poloze v nastavení Safari nebo aplikace.':'GPS: '+e.message);
   if(e.code===1)gpsStop();
  },{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
 }
@@ -201,46 +224,62 @@ function updateRouteProgress(accuracy=25){
  const meters=Math.max(0,routeTotalMeters-(routeCum[best.index]+best.t*(routeCum[best.index+1]-routeCum[best.index])));
  const minutes=Math.ceil(routeDurationSeconds*(meters/Math.max(1,routeTotalMeters))/60);
  $('summary').textContent='🚗 Zbývá '+(meters/1000).toFixed(1)+' km · přibližně '+minutes+' min';
- $('instruction').textContent='GPS navigace bez přepočtu při odbočení a bez živého provozu.';
+ $('instruction').textContent='TomTom: trasa se zohledněním dostupných dopravních dat. Přepočet při výrazné odchylce.';
  if(navigationTarget&&map.distance(gpsPosition,[navigationTarget.lat,navigationTarget.lng])<30&&accuracy<=35){$('instruction').textContent='Jsi poblíž cíle.';}
 }
 async function routeTo(to){
- if(!gpsPosition){pendingRouteTarget={...to};status('Čekám na polohu GPS, potom trasu automaticky vypočítám…');gpsStart();return;}
+ if(!tomtomKey){openTomTomSettings();status('Nejdřív ulož TomTom API klíč.');return;}
+ if(!gpsPosition){pendingRouteTarget={...to};status('Zjišťuji polohu. Trasu spustím automaticky…');gpsStart();return;}
  pendingRouteTarget=null;
  const token=++routeCall;
  navigationTarget=to;
- status('Počítám trasu autem…');
+ status('TomTom počítá trasu s aktuálním provozem…');
+ if(pendingRouteAbort)pendingRouteAbort.abort();
+ pendingRouteAbort=new AbortController();
  try{
-  const from=gpsPosition;
-  const url='https://router.project-osrm.org/route/v1/driving/'+from.lng+','+from.lat+';'+to.lng+','+to.lat+'?overview=full&geometries=geojson&steps=false';
-  const r=await fetch(url);
-  if(!r.ok)throw Error('HTTP '+r.status);
+  const from={...gpsPosition};
+  const path=from.lat+','+from.lng+':'+to.lat+','+to.lng;
+  const params=new URLSearchParams({key:tomtomKey,traffic:'true',routeType:'fastest',travelMode:'car',departAt:'now',routeRepresentation:'polyline'});
+  const url='https://api.tomtom.com/routing/1/calculateRoute/'+path+'/json?'+params;
+  const r=await fetch(url,{signal:pendingRouteAbort.signal});
+  if(!r.ok)throw Error('TomTom HTTP '+r.status+(r.status===403?' – zkontroluj oprávnění klíče a whitelist':'') );
   const data=await r.json();
-  if(data.code!=='Ok'||!data.routes?.length)throw Error('Trasa nenalezena');
+  const route=data.routes?.[0];
+  if(!route)throw Error(data.error?.description||'Trasa nebyla nalezena');
   if(token!==routeCall)return;
-  const route=data.routes[0];
+  const pts=(route.legs||[]).flatMap((leg,i)=>{const points=(leg.points||[]).map(pt=>[pt.latitude,pt.longitude]);return i?points.slice(1):points;});
+  if(pts.length<2)throw Error('TomTom nevrátil geometrii trasy');
   if(routeLayer)map.removeLayer(routeLayer);
-  routePoints=route.geometry.coordinates.map(c=>[c[1],c[0]]);
-  routeCum=[0];
-  for(let i=1;i<routePoints.length;i++)routeCum.push(routeCum[i-1]+map.distance(routePoints[i-1],routePoints[i]));
+  routePoints=pts;routeCum=[0];
+  for(let i=1;i<pts.length;i++)routeCum.push(routeCum[i-1]+map.distance(pts[i-1],pts[i]));
   routeTotalMeters=routeCum.at(-1);
-  routeDurationSeconds=route.duration;
-  routeProgress=0;
-  routeLayer=L.polyline(routePoints,{color:'#1a73e8',weight:7,opacity:.9,lineCap:'round',lineJoin:'round'}).addTo(map);
+  routeDurationSeconds=route.summary?.travelTimeInSeconds||0;
+  routeProgress=0;currentRouteTarget={...to};offRouteSamples=0;
+  routeLayer=L.polyline(pts,{color:'#1a73e8',weight:7,opacity:.91,lineCap:'round',lineJoin:'round'}).addTo(map);
   routeActive=true;follow=true;$('gps').textContent='◉';
   $('instruction').hidden=false;
-  $('instruction').textContent='Orientační navigace; bez hlasu, živého provozu a automatického přepočtu.';
+  $('instruction').textContent='Provoz zohledněn při výpočtu. Ne všechny uzavírky musí být známy.';
   $('stopRoute').hidden=false;
-  $('summary').textContent='🚗 '+(route.distance/1000).toFixed(1)+' km · '+Math.ceil(route.duration/60)+' min';
+  $('summary').textContent='🚗 '+((route.summary?.lengthInMeters||routeTotalMeters)/1000).toFixed(1)+' km · '+Math.ceil(routeDurationSeconds/60)+' min';
   map.setView([gpsPosition.lat,gpsPosition.lng],17,{animate:true});
   updateRouteProgress(25);
-  status('Navigace aktivní. Projetá trasa postupně mizí.');
- }catch(e){if(token===routeCall)status('Trasu se nepodařilo vypočítat: '+e.message);}
+  status('TomTom trasa připravena. Nejde o certifikovanou navigaci.');
+ }catch(e){if(token===routeCall&&e.name!=='AbortError')status('TomTom navigace: '+e.message);}
+}
+function maybeReroute(accuracy){
+ if(!routeActive||!gpsPosition||!currentRouteTarget||accuracy>35||!routePoints.length)return;
+ // prevent excessive paid/free-quota calls; at most one new route every 120 s
+ if(Date.now()-rerouteAt<120000)return;
+ const fromIdx=Math.max(0,Math.floor(routeProgress)-4);
+ let dist=Infinity;
+ for(let i=fromIdx;i<Math.min(routePoints.length-1,fromIdx+100);i++)dist=Math.min(dist,segmentProjection(gpsPosition,routePoints[i],routePoints[i+1]).distance);
+ if(dist>90)offRouteSamples++;else offRouteSamples=0;
+ if(offRouteSamples>=3){offRouteSamples=0;rerouteAt=Date.now();status('Výrazná odchylka, přepočítávám trasu…');routeTo(currentRouteTarget);}
 }
 function stopRoute(){
  pendingRouteTarget=null;
- routeCall++;if(routeLayer)map.removeLayer(routeLayer);
- routeLayer=null;routePoints=[];routeCum=[];routeProgress=0;routeActive=false;
+ routeCall++;if(pendingRouteAbort)pendingRouteAbort.abort();if(routeLayer)map.removeLayer(routeLayer);
+ routeLayer=null;routePoints=[];routeCum=[];routeProgress=0;routeActive=false;currentRouteTarget=null;offRouteSamples=0;
  $('stopRoute').hidden=true;$('instruction').textContent='';$('instruction').hidden=true;
  $('summary').textContent=destination?'📍 '+destination.label:'Vyber cíl nebo zapni GPS';
 }
@@ -260,6 +299,57 @@ map.on('click',e=>{
  $('summary').textContent='📍 Vybraný bod na mapě';
  status('Bod vybrán. Stiskni Trasa.');
 });
+
+// TomTom key is intentionally never written into GitHub source.
+function openTomTomSettings(){ $('tomtomKey').value=tomtomKey; $('settingsBackdrop').style.display='flex'; }
+$('settingsOpen').onclick=openTomTomSettings;
+$('settingsClose').onclick=()=>{$('settingsBackdrop').style.display='none';};
+$('settingsSave').onclick=()=>{
+ const val=$('tomtomKey').value.trim();
+ if(!val){status('Zadej API klíč, nebo použij Smazat klíč.');return;}
+ tomtomKey=val;localStorage.setItem('prahaParkingTomTomKey',val);
+ $('settingsBackdrop').style.display='none';status('TomTom klíč uložen pouze na tomto zařízení.');
+};
+$('settingsRemove').onclick=()=>{
+ localStorage.removeItem('prahaParkingTomTomKey');tomtomKey='';$('tomtomKey').value='';
+ disableTraffic();disableIncidents();$('settingsBackdrop').style.display='none';status('TomTom klíč byl z tohoto zařízení odstraněn.');
+};
+function disableTraffic(){trafficOn=false;if(trafficLayer)map.removeLayer(trafficLayer);trafficLayer=null;$('trafficToggle').classList.remove('active');$('trafficToggle').textContent='🚦 Provoz: vyp.';}
+$('trafficToggle').onclick=()=>{
+ if(trafficOn){disableTraffic();return;}
+ if(!tomtomKey){openTomTomSettings();return;}
+ // A traffic tile request is made for every visible tile; use only when needed.
+ trafficLayer=L.tileLayer('https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key='+encodeURIComponent(tomtomKey),{maxZoom:19,minZoom:12,opacity:.75,attribution:'Dopravní data © TomTom'}).addTo(map);
+ trafficOn=true;$('trafficToggle').classList.add('active');$('trafficToggle').textContent='🚦 Provoz: zap.';
+ status('Zobrazena živá dopravní vrstva TomTom. Načítání dlaždic čerpá API limity.');
+};
+function disableIncidents(){incidentsOn=false;incidentsLayer.clearLayers();$('incidentsToggle').classList.remove('active');$('incidentsToggle').textContent='⚠ Události: vyp.';}
+async function loadIncidents(){
+ if(!incidentsOn||!tomtomKey||map.getZoom()<12)return;
+ if(Date.now()-lastIncidentLoad<60000)return;
+ lastIncidentLoad=Date.now();
+ const b=map.getBounds(),bbox=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(',');
+ const fields='incidents{type,geometry{type,coordinates},properties{iconCategory,events{description},from,to}}';
+ const q=new URLSearchParams({key:tomtomKey,bbox,fields,language:'cs-CZ',timeValidityFilter:'present'});
+ try{
+  const r=await fetch('https://api.tomtom.com/traffic/services/5/incidentDetails?'+q);
+  if(!r.ok)throw Error('HTTP '+r.status);
+  const data=await r.json();incidentsLayer.clearLayers();
+  const items=data.incidents||[];
+  items.forEach(incident=>{
+   const p=incident.properties||{};const desc=p.events?.map(x=>x.description).filter(Boolean).join(' · ')||'Dopravní událost';
+   const color=Number(p.iconCategory)===8?'#cb2027':'#e68b23';
+   L.geoJSON(incident,{style:{color,weight:5,opacity:.9},pointToLayer:(_,latlng)=>L.circleMarker(latlng,{radius:7,color:'#fff',weight:2,fillColor:color,fillOpacity:1}),onEachFeature:(_,l)=>l.bindPopup(desc)}).addTo(incidentsLayer);
+  });
+  $('ttMessage').textContent='TomTom: '+items.length+' dopravních událostí v zobrazené oblasti.';
+ }catch(e){$('ttMessage').textContent='Události TomTom se nenačetly: '+e.message;}
+}
+$('incidentsToggle').onclick=()=>{
+ if(incidentsOn){disableIncidents();return;}
+ if(!tomtomKey){openTomTomSettings();return;}
+ incidentsOn=true;lastIncidentLoad=0;$('incidentsToggle').classList.add('active');$('incidentsToggle').textContent='⚠ Události: zap.';loadIncidents();
+};
+map.on('moveend',()=>{if(incidentsOn)loadIncidents();});
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
 loadZones();
 </script>
