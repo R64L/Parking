@@ -35,6 +35,155 @@ button:disabled{opacity:.5}
 #details button{margin-right:8px}
 .exact-marker{background:#ef4747;border:4px solid white;border-radius:50%;box-shadow:0 0 0 6px #ef474744,0 3px 10px #0009}
 .leaflet-popup-content{color:#182838}
+ 
+/* Praha Parking – mobilní mapové rozhraní */
+html,body{
+  width:100%;
+  height:100%;
+  margin:0;
+  overflow:hidden;
+  overscroll-behavior:none;
+  background:#f8f9fa;
+  color:#202124;
+}
+
+header{display:none}
+
+#map{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100dvh;
+  min-height:0;
+  z-index:0;
+  background:#e8edf1;
+  touch-action:none;
+}
+
+/* Ovládání nad mapou */
+.controls{
+  position:fixed;
+  top:calc(env(safe-area-inset-top) + 10px);
+  left:10px;
+  right:10px;
+  z-index:1000;
+  padding:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  background:rgba(255,255,255,.97);
+  border-radius:16px;
+  box-shadow:0 3px 16px #0002;
+}
+
+.controls input{
+  min-width:0;
+  flex:1 1 58%;
+  background:#f1f3f4;
+  color:#202124;
+}
+
+.controls button,
+.controls select{
+  min-height:40px;
+  padding:9px 11px;
+  border-radius:9px;
+  font-size:13px;
+}
+
+button{
+  background:#4285f4;
+  color:white;
+}
+
+button.secondary{
+  background:#e8f0fe;
+  color:#1967d2;
+}
+
+#results{
+  position:fixed;
+  top:calc(env(safe-area-inset-top) + 155px);
+  left:10px;
+  right:10px;
+  z-index:1100;
+  max-height:45dvh;
+  overflow:auto;
+  background:white;
+  border-radius:12px;
+  box-shadow:0 4px 16px #0003;
+}
+
+.result{
+  background:white;
+  color:#202124;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.result small{color:#5f6368}
+
+/* Spodní panel navigace */
+#routePanel{
+  position:fixed;
+  bottom:calc(env(safe-area-inset-bottom) + 87px);
+  left:10px;
+  right:10px;
+  z-index:950;
+  padding:14px;
+  border-radius:15px;
+  background:white;
+  color:#202124;
+  box-shadow:0 3px 16px #0003;
+}
+
+#routeSummary{
+  color:#1967d2;
+  font-size:17px;
+}
+
+#instruction{color:#5f6368}
+
+.legend{
+  position:fixed;
+  bottom:calc(env(safe-area-inset-bottom) + 39px);
+  left:10px;
+  right:10px;
+  z-index:900;
+  justify-content:center;
+  border-radius:10px;
+  background:rgba(255,255,255,.95);
+  color:#3c4043;
+  box-shadow:0 2px 10px #0001;
+}
+
+#status{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  z-index:900;
+  padding:9px 12px;
+  padding-bottom:calc(env(safe-area-inset-bottom) + 7px);
+  background:white;
+  color:#5f6368;
+  font-size:11px;
+}
+
+#details{
+  bottom:calc(env(safe-area-inset-bottom) + 90px);
+  background:white;
+  color:#202124;
+}
+
+/* Zachovej možnost dotykového ovládání mapy */
+.leaflet-container{
+  touch-action:none !important;
+}
+
+.leaflet-control-attribution{
+  font-size:9px;
+}
+
 </style>
 </head>
 <body>
@@ -80,7 +229,29 @@ button:disabled{opacity:.5}
 const $=id=>document.getElementById(id);
 const API='https://gs-pub.praha.eu/arcgis/rest/services/dop/placene_parkovani/MapServer/6/query';
 const ROUTER='https://router.project-osrm.org/route/v1/driving/';
-const map=L.map('map').setView([50.08,14.43],14);
+
+const map=L.map('map',{
+  dragging:true,
+  touchZoom:true,
+  doubleClickZoom:true,
+  scrollWheelZoom:true,
+  zoomControl:false,
+  tap:false
+}).setView([50.08,14.43],14);
+
+// Posouvání mapy jedním prstem
+map.dragging.enable();
+
+// Přiblížení dvěma prsty
+map.touchZoom.enable();
+
+// Zamezení posouvání celé webové stránky
+document.addEventListener('touchmove',e=>{
+  if(e.target.closest('#map') && e.cancelable){
+    e.preventDefault();
+  }
+},{passive:false});
+
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
  attribution:'© OpenStreetMap contributors',
@@ -378,7 +549,45 @@ $('clearSearch').onclick=()=>{
  if(searchCircle)map.removeLayer(searchCircle);
  searchMarker=searchCircle=null;
  destination=null;
- stopRoute();
+ 
+function stopRoute(){
+  // Odstraní modrou trasu z mapy
+  if(routeLayer){
+    map.removeLayer(routeLayer);
+    routeLayer=null;
+  }
+
+  // Vymaže navigační instrukce
+  routeSteps=[];
+  routeCoordinates=[];
+  lastInstruction=-1;
+
+  // Skryje informační panel navigace
+  $('routePanel').style.display='none';
+  $('routeSummary').textContent='';
+  $('instruction').textContent='';
+
+  // Hledaný cíl a GPS zůstávají zachovány
+}
+
+$('stopRoute').onclick=()=>{
+  stopRoute();
+
+  // Vrátí přirozené přiblížení mapy
+  if(destination){
+    map.setView(
+      [destination.lat,destination.lng],
+      16
+    );
+  }else if(gpsPosition){
+    map.setView(
+      [gpsPosition.lat,gpsPosition.lng],
+      16
+    );
+  }
+
+  status('Navigace ukončena.');
+};
  status('Vyhledávání vymazáno.');
 };
 
