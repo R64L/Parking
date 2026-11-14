@@ -47,6 +47,9 @@ button{background:#2b86ef;color:white;font-weight:600;cursor:pointer}
 <option value="24">Min. 24 h</option>
 </select>
 <button id="gps">📍 GPS</button>
+<button id="clearSearch" style="background:#536477">
+  ✕ Vymazat hledání
+</button>
 </div>
 <div class="legend">
 <span><i class="dot good"></i>Vyhovuje orientačně</span>
@@ -73,7 +76,13 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
  maxZoom:19
 }).addTo(map);
 let layer=L.geoJSON(null).addTo(map);
-let features=[],abort,marker;
+let features=[],abort;
+let gpsMarker=null;
+let searchMarker=null;
+let searchCircle=null;
+let gpsWatchId=null;
+let followGps=false;
+let gpsHasFix=false;
 
 function zoneInfo(f){
  const p=f.properties||{};
@@ -196,20 +205,136 @@ map.on('moveend',()=>{
 });
 $('hours').onchange=render;
 
-$('gps').onclick=()=>{
- $('status').textContent='Zjišťuji polohu…';
- navigator.geolocation.getCurrentPosition(p=>{
-  const ll=[p.coords.latitude,p.coords.longitude];
-  if(marker)map.removeLayer(marker);
-  marker=L.circleMarker(ll,{
-   radius:9,color:'white',weight:3,
-   fillColor:'#2586ef',fillOpacity:1
-  }).addTo(map);
-  map.setView(ll,16);
- },e=>{
-  $('status').textContent='GPS není dostupná: '+e.message;
- },{enableHighAccuracy:true,timeout:15000});
+
+function updateGpsPosition(position) {
+  const ll = [
+    position.coords.latitude,
+    position.coords.longitude
+  ];
+
+  if (!gpsMarker) {
+    gpsMarker = L.circleMarker(ll, {
+      radius: 9,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: '#2586ef',
+      fillOpacity: 1
+    }).addTo(map);
+
+    gpsMarker.bindPopup('Moje aktuální poloha');
+  } else {
+    gpsMarker.setLatLng(ll);
+  }
+
+  if (followGps) {
+    if (!gpsHasFix) {
+      map.setView(ll, 16);
+    } else {
+      map.panTo(ll, {animate: true});
+    }
+  }
+
+  gpsHasFix = true;
+
+  $('status').textContent =
+    'GPS aktivní · přesnost přibližně ' +
+    Math.round(position.coords.accuracy) + ' m';
+}
+
+function startGps() {
+  if (!navigator.geolocation) {
+    $('status').textContent = 'GPS není podporována.';
+    return;
+  }
+
+  if (gpsWatchId !== null) {
+    followGps = true;
+
+    if (gpsMarker) {
+      map.setView(gpsMarker.getLatLng(), 16);
+    }
+
+    $('gps').textContent = '📍 Sleduji';
+    return;
+  }
+
+  followGps = true;
+  gpsHasFix = false;
+
+  $('status').textContent = 'Zapínám sledování GPS…';
+
+  gpsWatchId = navigator.geolocation.watchPosition(
+    updateGpsPosition,
+    error => {
+      $('status').textContent =
+        'GPS chyba: ' + error.message;
+
+      if (error.code === 1) {
+        stopGps();
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 15000
+    }
+  );
+
+  $('gps').textContent = '📍 Sleduji';
+}
+
+function stopGps() {
+  if (gpsWatchId !== null) {
+    navigator.geolocation.clearWatch(gpsWatchId);
+    gpsWatchId = null;
+  }
+
+  followGps = false;
+  $('gps').textContent = '📍 GPS';
+}
+
+$('gps').onclick = () => {
+  if (gpsWatchId === null) {
+    startGps();
+  } else if (!followGps) {
+    followGps = true;
+
+    if (gpsMarker) {
+      map.setView(gpsMarker.getLatLng(), 16);
+    }
+
+    $('gps').textContent = '📍 Sleduji';
+  } else {
+    stopGps();
+  }
 };
+
+// Ruční posunutí mapy pozastaví centrování.
+map.on('dragstart', () => {
+  if (followGps) {
+    followGps = false;
+    $('gps').textContent = '📍 GPS';
+  }
+});
+
+ 
+$('clearSearch').onclick = () => {
+  $('address').value = '';
+
+  if (searchMarker) {
+    map.removeLayer(searchMarker);
+    searchMarker = null;
+  }
+
+  if (searchCircle) {
+    map.removeLayer(searchCircle);
+    searchCircle = null;
+  }
+
+  $('details').style.display = 'none';
+  $('status').textContent = 'Hledaná adresa vymazána.';
+};
+
 
 $('search').onclick=async()=>{
  const address=$('address').value.trim();
