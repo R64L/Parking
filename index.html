@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="cs">
 <head>
@@ -7,16 +6,15 @@
 <meta name="theme-color" content="#f8fafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Praha Parking</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Praha Parking">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#202124;background:#e8edf1}
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden}
-button,input,select{font:inherit}
-button{cursor:pointer;border:0}
-button:disabled{opacity:.48;cursor:default}
-#map{position:fixed;inset:0;height:100dvh;width:100%;z-index:0;touch-action:none;background:#e8edf1}
-.leaflet-container{touch-action:none!important}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}button,input,select{font:inherit}button{cursor:pointer;border:0}button:disabled{opacity:.48;cursor:default}
+#map{position:fixed;inset:0;height:100dvh;width:100%;z-index:0;touch-action:none;background:#e8edf1}.leaflet-container{touch-action:none!important}
 #top{position:fixed;z-index:1000;top:calc(env(safe-area-inset-top) + 10px);left:10px;right:10px;pointer-events:none}
 #searchBar,#filters,#suggestions{pointer-events:auto;background:white;border-radius:15px;box-shadow:0 2px 14px #1f293733}
 #searchBar{display:flex;align-items:center;gap:6px;padding:6px 7px}
@@ -25,44 +23,29 @@ button:disabled{opacity:.48;cursor:default}
 .primary{background:#1a73e8;color:#fff;border-radius:10px;padding:11px 13px;font-weight:650;min-height:40px}
 .secondary{background:#e8f0fe;color:#1967d2;border-radius:10px;padding:10px 12px;font-weight:600;min-height:40px}
 #filters{margin-top:8px;display:flex;align-items:center;gap:7px;padding:8px;width:max-content;max-width:100%}
-#filters label{font-size:12px;color:#5f6368}
-#hours{border:0;background:#eef3f8;border-radius:9px;padding:8px;color:#202124}
+#filters label{font-size:12px;color:#5f6368}#hours{border:0;background:#eef3f8;border-radius:9px;padding:8px;color:#202124}
 #suggestions{margin-top:6px;max-height:43dvh;overflow-y:auto;display:none}
 .suggestion{display:block;text-align:left;width:100%;padding:12px 14px;background:#fff;color:#202124;border-bottom:1px solid #edf0f2}
-.suggestion:last-child{border-bottom:0}
-.suggestion strong{display:block;font-size:14px;font-weight:650}
-.suggestion span{display:block;font-size:12px;color:#5f6368;margin-top:3px}
+.suggestion:last-child{border-bottom:0}.suggestion strong{display:block;font-size:14px;font-weight:650}.suggestion span{display:block;font-size:12px;color:#5f6368;margin-top:3px}
 #rightTools{position:fixed;z-index:900;right:11px;bottom:calc(env(safe-area-inset-bottom) + 160px);display:flex;flex-direction:column;gap:8px}
 .fab{border-radius:50%;width:49px;height:49px;background:#fff;box-shadow:0 2px 12px #0003;color:#1967d2;font-size:22px}
 #bottom{position:fixed;z-index:950;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);background:#fff;border-radius:17px;box-shadow:0 2px 16px #0003;padding:11px 13px}
-#summary{font-size:13px;font-weight:650;margin-bottom:7px}
-#instruction{color:#5f6368;font-size:12px;margin:0 0 8px}
-#actions{display:flex;gap:7px;flex-wrap:wrap}
-#actions button{flex:1;white-space:nowrap;font-size:13px}
+#summary{font-size:13px;font-weight:650;margin-bottom:7px}#instruction{color:#5f6368;font-size:12px;margin:0 0 8px}
+#actions{display:flex;gap:7px;flex-wrap:wrap}#actions button{flex:1;white-space:nowrap;font-size:13px}
 #status{font-size:11px;color:#5f6368;margin-top:8px;line-height:1.4}
-#legend{font-size:11px;color:#5f6368;display:flex;gap:9px;flex-wrap:wrap;margin:0 0 8px}
-.dot{width:9px;height:9px;display:inline-block;border-radius:50%;margin-right:3px}
+#legend{font-size:11px;color:#5f6368;display:flex;gap:9px;flex-wrap:wrap;margin:0 0 8px}.dot{width:9px;height:9px;display:inline-block;border-radius:50%;margin-right:3px}
 #details{position:fixed;z-index:1250;bottom:calc(env(safe-area-inset-bottom) + 156px);left:12px;right:12px;display:none;background:#fff;padding:15px;border-radius:15px;box-shadow:0 3px 25px #0005}
-#details h3{margin:0 0 6px;font-size:16px}
-#details p{font-size:13px;line-height:1.45;color:#4b5563}
+#details h3{margin:0 0 6px;font-size:16px}#details p{font-size:13px;line-height:1.45;color:#4b5563}
 #dialogBackdrop{display:none;position:fixed;inset:0;z-index:1500;background:#0006;align-items:center;justify-content:center;padding:24px}
 #dialog{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:370px;box-shadow:0 8px 38px #0004}
-#dialog h3{margin:0 0 8px}
-#dialog p{line-height:1.5;font-size:14px}
-#dialogActions{display:flex;justify-content:flex-end;gap:8px}
+#dialog h3{margin:0 0 8px}#dialog p{line-height:1.5;font-size:14px}#dialogActions{display:flex;justify-content:flex-end;gap:8px}
 .dest{height:23px;width:23px;background:#ea4335;border:4px solid #fff;border-radius:50%;box-shadow:0 0 0 5px #ea433548,0 2px 12px #0005}
 .leaflet-control-attribution{font-size:9px!important}
-@media(max-height:650px){
- #rightTools{bottom:150px}
- #bottom{padding:8px}
- #filters{margin-top:5px}
-}
+@media(max-height:650px){#rightTools{bottom:150px}#bottom{padding:8px}#filters{margin-top:5px}}
 </style>
 </head>
 <body>
-
 <div id="map" aria-label="Mapa Prahy"></div>
-
 <div id="top">
   <div id="searchBar">
     <span style="font-size:20px;padding-left:5px" aria-hidden="true">🔎</span>
@@ -71,971 +54,186 @@ button:disabled{opacity:.48;cursor:default}
     <button class="primary" id="search" title="Vyhledat">Hledat</button>
   </div>
   <div id="suggestions" role="listbox" aria-label="Návrhy míst"></div>
-  <div id="filters">
-    <label for="hours">Parkování alespoň</label>
-    <select id="hours">
-      <option value="2">2 h</option>
-      <option value="3">3 h</option>
-      <option value="4">4 h</option>
-      <option value="8">8 h</option>
-      <option value="24">24 h</option>
-    </select>
-  </div>
+  <div id="filters"><label for="hours">Parkování alespoň</label><select id="hours"><option value="2">2 h</option><option value="3">3 h</option><option value="4">4 h</option><option value="8">8 h</option><option value="24">24 h</option></select></div>
 </div>
-
-<div id="rightTools">
-  <button class="fab" id="gps" title="GPS – sledovat polohu" aria-label="GPS">◎</button>
-</div>
-
-<div id="details">
-  <h3 id="zoneTitle"></h3>
-  <p id="zoneInfo"></p>
-  <button class="primary" id="routeHere">Navigovat sem</button>
-  <button class="secondary" id="closeDetails">Zavřít</button>
-</div>
-
+<div id="rightTools"><button class="fab" id="gps" title="GPS – sledovat polohu" aria-label="GPS">◎</button></div>
+<div id="details"><h3 id="zoneTitle"></h3><p id="zoneInfo"></p><button class="primary" id="routeHere">Navigovat sem</button> <button class="secondary" id="closeDetails">Zavřít</button></div>
 <div id="bottom">
-  <div id="legend">
-    <span><i class="dot" style="background:#22aa72"></i>Orientačně vyhovuje</span>
-    <span><i class="dot" style="background:#e86a6a"></i>Nevyhovuje</span>
-    <span><i class="dot" style="background:#9298a0"></i>Neověřeno</span>
-  </div>
-  <div id="summary">Vyber cíl nebo zapni GPS</div>
-  <div id="instruction" hidden></div>
-  <div id="actions">
-    <button id="navigate" class="primary">🚗 Trasa</button>
-    <button id="stopRoute" class="secondary" hidden>Ukončit trasu</button>
-  </div>
-  <div id="status" role="status">Načítám parkovací zóny…</div>
+ <div id="legend"><span><i class="dot" style="background:#22aa72"></i>Orientačně vyhovuje</span><span><i class="dot" style="background:#e86a6a"></i>Nevyhovuje</span><span><i class="dot" style="background:#9298a0"></i>Neověřeno</span></div>
+ <div id="summary">Vyber cíl nebo zapni GPS</div>
+ <div id="instruction" hidden></div>
+ <div id="actions"><button id="navigate" class="primary">🚗 Trasa</button><button id="stopRoute" class="secondary" hidden>Ukončit trasu</button></div>
+ <div id="status" role="status">Načítám parkovací zóny…</div>
 </div>
-
-<div id="dialogBackdrop" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
-  <div id="dialog">
-    <h3 id="dialogTitle">Myslel jsi toto?</h3>
-    <p id="dialogText"></p>
-    <div id="dialogActions">
-      <button class="secondary" id="dialogNo">Ne</button>
-      <button class="primary" id="dialogYes">Ano</button>
-    </div>
-  </div>
-</div>
-
+<div id="dialogBackdrop" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><div id="dialog"><h3 id="dialogTitle">Myslel jsi toto?</h3><p id="dialogText"></p><div id="dialogActions"><button class="secondary" id="dialogNo">Ne</button><button class="primary" id="dialogYes">Ano</button></div></div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 'use strict';
-
-const $ = id => document.getElementById(id);
-
-const map = L.map('map', {
-  dragging: true,
-  touchZoom: true,
-  doubleClickZoom: true,
-  scrollWheelZoom: true,
-  zoomControl: false
-}).setView([50.080, 14.430], 15);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '© OpenStreetMap contributors'
-}).addTo(map);
-
-const ZONE_API =
-  'https://gs-pub.praha.eu/arcgis/rest/services/dop/placene_parkovani/MapServer/6/query';
-
-const PHOTON = 'https://photon.komoot.io/api/';
-
-let features = [];
-let zoneLayer = L.geoJSON().addTo(map);
-let zoneAbort = null;
-let zoneToken = 0;
-
-let gpsWatch = null;
-let gpsPosition = null;
-let gpsMarker = null;
-let follow = false;
-
-let destination = null;
-let destinationMarker = null;
-let destinationCircle = null;
-let routeLayer = null;
-let selectedZone = null;
-
-let currentSuggestions = [];
-let lastSuggestionQuery = '';
-let searchAbort = null;
-let searchTimer = null;
-let searchToken = 0;
-let lastSearchAt = 0;
-
-const normalize = s => String(s || '')
-  .toLocaleLowerCase('cs')
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/[^a-z0-9]+/g, ' ')
-  .trim();
-
-function status(s) {
-  $('status').textContent = s;
+const $=id=>document.getElementById(id);
+const map=L.map('map',{dragging:true,touchZoom:true,doubleClickZoom:true,scrollWheelZoom:true,zoomControl:false}).setView([50.080,14.430],15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+const ZONE_API='https://gs-pub.praha.eu/arcgis/rest/services/dop/placene_parkovani/MapServer/6/query';
+const PHOTON='https://photon.komoot.io/api/';
+let features=[],zoneLayer=L.geoJSON().addTo(map),zoneAbort=null,zoneToken=0;
+let gpsWatch=null,gpsPosition=null,gpsMarker=null,follow=false;
+let destination=null,destinationMarker=null,destinationCircle=null,routeLayer=null,selectedZone=null;
+let navigationTarget=null,routePoints=[],routeProgress=0,routeCum=[],routeTotalMeters=0,routeDurationSeconds=0,routeActive=false,routeCall=0;
+let currentSuggestions=[],lastSuggestionQuery='',searchAbort=null,searchTimer=null,searchToken=0,lastSearchAt=0;
+const normalize=s=>String(s||'').toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+function status(s){$('status').textContent=s;}
+function closeSuggestions(){ $('suggestions').style.display='none'; $('suggestions').replaceChildren(); }
+function isPrague(p){const a=normalize([p.city,p.district,p.county,p.state].join(' '));return a.includes('praha')||a.includes('prague');}
+function kind(f){const p=f.properties||{};const t=String(p.type||p.osm_value||'').toLowerCase();if(p.housenumber||['house','building','address','entrance'].includes(t))return 'address';if(['street','road','residential','pedestrian','living_street'].includes(t))return 'street';if(['suburb','neighbourhood','quarter','city','district','city_district'].includes(t))return 'area';if(p.osm_key==='highway')return 'street';if(['amenity','shop','tourism','leisure','office','craft','historic'].includes(p.osm_key))return 'poi';return 'unknown';}
+function label(f){const p=f.properties||{};const main=[p.name||p.street||'Místo',p.housenumber].filter(Boolean).join(' ');const sub=[p.street&&p.street!==p.name?p.street:null,p.district,p.city].filter(Boolean).join(', ');return {main,sub};}
+function isExactMatch(query,f){const p=f.properties||{},k=kind(f),q=normalize(query),name=normalize(p.name||p.street||'');if(!q)return false;if(k==='street'||k==='area'||k==='unknown')return q===name;
+ const number=(query.match(/\b\d+(?:\/\d+)?\b/)||[])[0];
+ if(k==='address'){
+   const house=String(p.housenumber||'');
+   if(!number||!house)return false;
+   const nums=house.split('/');
+   const numberMatch=house===number||nums.includes(number);
+   const street=normalize(p.street||p.name||'');
+   const queryStreet=normalize(query.replace(number,''));
+   return numberMatch&&!!street&&(street===queryStreet||queryStreet.endsWith(street));
+ }
+ return k==='poi'&&q===name;
 }
-
-function closeSuggestions() {
-  $('suggestions').style.display = 'none';
-  $('suggestions').replaceChildren();
+function suggestionNeedsConfirmation(query,f){const k=kind(f);if(k==='street'||k==='area')return false;return !isExactMatch(query,f);}
+function showConfirm(f,query){const name=label(f);$('dialogText').textContent='Pro „'+query+'“ jsem našel „'+name.main+(name.sub?' – '+name.sub:'')+'“. Je to správné místo?';$('dialogBackdrop').style.display='flex';$('dialogYes').onclick=()=>{$('dialogBackdrop').style.display='none';selectPlace(f);};$('dialogNo').onclick=()=>{$('dialogBackdrop').style.display='none';status('Cíl nebyl potvrzen. Vyber jiný výsledek nebo zkus přesnější adresu.');$('address').focus();};}
+function selectResult(f,originalQuery){if(suggestionNeedsConfirmation(originalQuery,f)){showConfirm(f,originalQuery);}else{selectPlace(f);}}
+function selectPlace(f){const p=f.properties||{},coords=f.geometry?.coordinates;if(!coords||coords.length<2)return;
+ closeSuggestions();$('address').blur();const k=kind(f),[lng,lat]=coords;
+ if(destinationMarker)map.removeLayer(destinationMarker);if(destinationCircle)map.removeLayer(destinationCircle);destinationMarker=destinationCircle=null;destination=null;navigationTarget=null;selectedZone=null;
+ stopRoute();
+ const info=label(f);$('address').value=info.main;
+ if(k==='address'||k==='poi'){
+   destination={lat,lng,label:info.main}; navigationTarget=destination;
+   destinationMarker=L.marker([lat,lng],{icon:L.divIcon({className:'dest',iconSize:[23,23],iconAnchor:[11,11]})}).addTo(map);
+   destinationCircle=L.circle([lat,lng],{radius:35,color:'#ea4335',weight:2,fillColor:'#ea4335',fillOpacity:.13}).addTo(map);
+   destinationMarker.bindPopup('Cíl: '+info.main).openPopup();
+   $('summary').textContent='📍 '+info.main;
+   status('Cíl označen červeně. Pro navigaci stiskni Trasa.');
+ }else{$('summary').textContent=k==='street'?'Ulice: '+info.main:'Lokalita: '+info.main;status('Zobrazuji oblast bez přesného cílového bodu.');}
+ map.setView([lat,lng],17);
 }
-
-function isPrague(p) {
-  const a = normalize([
-    p.city, p.district, p.county, p.state
-  ].join(' '));
-
-  return a.includes('praha') || a.includes('prague');
+function renderSuggestions(list,query){currentSuggestions=list;lastSuggestionQuery=query;const box=$('suggestions');box.replaceChildren();if(!list.length){closeSuggestions();return;}
+ list.forEach((f,i)=>{const p=f.properties||{},l=label(f),b=document.createElement('button');b.className='suggestion';b.type='button';b.setAttribute('role','option');b.setAttribute('aria-label',l.main);const strong=document.createElement('strong');strong.textContent=(i===0?'📍 ':'')+l.main;const sub=document.createElement('span');sub.textContent=(l.sub?l.sub+' · ':'')+({address:'Adresa',poi:'Podnik / místo',street:'Ulice',area:'Oblast',unknown:'Neověřené místo'}[kind(f)]);b.append(strong,sub);b.onclick=()=>selectResult(f,query);box.appendChild(b);});box.style.display='block';}
+async function photonSearch(query,showList=true){if(searchAbort)searchAbort.abort();searchAbort=new AbortController();const token=++searchToken;const elapsed=Date.now()-lastSearchAt;if(elapsed<1050)await new Promise(r=>setTimeout(r,1050-elapsed));if(token!==searchToken)return [];
+ const params=new URLSearchParams({q:query,limit:'8',lat:'50.08',lon:'14.43'});lastSearchAt=Date.now();
+ const r=await fetch(PHOTON+'?'+params,{signal:searchAbort.signal});if(!r.ok)throw Error('Vyhledávání momentálně nefunguje ('+r.status+').');const data=await r.json();if(token!==searchToken)return [];
+ const raw=(data.features||[]).filter(f=>Array.isArray(f.geometry?.coordinates));const local=raw.filter(f=>isPrague(f.properties||{}));const found=local.length?local:raw;
+ if(showList)renderSuggestions(found,query);return found;
 }
-
-function kind(f) {
-  const p = f.properties || {};
-  const t = String(p.type || p.osm_value || '').toLowerCase();
-
-  if (p.housenumber || [
-    'house', 'building', 'address', 'entrance'
-  ].includes(t)) return 'address';
-
-  if ([
-    'street', 'road', 'residential',
-    'pedestrian', 'living_street'
-  ].includes(t)) return 'street';
-
-  if ([
-    'suburb', 'neighbourhood', 'quarter',
-    'city', 'district', 'city_district'
-  ].includes(t)) return 'area';
-
-  if (p.osm_key === 'highway') return 'street';
-
-  if ([
-    'amenity', 'shop', 'tourism', 'leisure',
-    'office', 'craft', 'historic'
-  ].includes(p.osm_key)) return 'poi';
-
-  return 'unknown';
+$('address').addEventListener('input',()=>{clearTimeout(searchTimer);const query=$('address').value.trim();currentSuggestions=[];lastSuggestionQuery='';closeSuggestions();if(query.length<3){if(searchAbort)searchAbort.abort();searchToken++;currentSuggestions=[];closeSuggestions();return;}searchTimer=setTimeout(async()=>{try{await photonSearch(query,true);}catch(e){if(e.name!=='AbortError')status('Našeptávání není dostupné: '+e.message);}},550);});
+async function performSearch(){clearTimeout(searchTimer);const query=$('address').value.trim();if(query.length<2){status('Zadej název nebo adresu.');return;}
+ if(currentSuggestions.length&&query===lastSuggestionQuery){selectResult(currentSuggestions[0],query);return;}
+ status('Vyhledávám „'+query+'“…');try{const result=await photonSearch(query,true);if(!result.length){closeSuggestions();status('⚠️ Místo nebylo nalezeno. Zkus jiný název nebo adresu.');$('summary').textContent='Místo nenalezeno';return;}selectResult(result[0],query);}catch(e){if(e.name!=='AbortError')status('⚠️ Vyhledávání selhalo: '+e.message);}
 }
-
-function label(f) {
-  const p = f.properties || {};
-
-  const main = [
-    p.name || p.street || 'Místo',
-    p.housenumber
-  ].filter(Boolean).join(' ');
-
-  const sub = [
-    p.street && p.street !== p.name ? p.street : null,
-    p.district,
-    p.city
-  ].filter(Boolean).join(', ');
-
-  return {main, sub};
+$('search').onclick=performSearch;
+$('address').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();performSearch();}else if(e.key==='Escape'){closeSuggestions();$('address').blur();}});
+$('clearSearch').onclick=()=>{$('address').value='';currentSuggestions=[];lastSuggestionQuery='';clearTimeout(searchTimer);if(searchAbort)searchAbort.abort();searchToken++;closeSuggestions();$('dialogBackdrop').style.display='none';if(destinationMarker)map.removeLayer(destinationMarker);if(destinationCircle)map.removeLayer(destinationCircle);destinationMarker=destinationCircle=null;destination=null;navigationTarget=null;selectedZone=null;stopRoute();$('summary').textContent='Vyber cíl nebo zapni GPS';status('Hledání vymazáno.');};
+function zoneInfo(f){const p=f.properties||{};const t=String(p.TYPZONY||'');const d=String(p.KODMC_T||'');const match=d.match(/(?:Praha[\s-]*|^)(\d{1,2})$/i);const district=match?Number(match[1]):null;
+ if(t==='2')return {hours:24,name:'Fialová zóna',note:'Orientačně až 24 hodin pro návštěvníka. Ověř místní značku a provozní dobu.'};
+ if(t==='1'&&district===1)return {hours:1,name:'Modrá zóna',note:'Orientačně maximálně 1 hodina pro návštěvníka.'};
+ if(t==='1'&&[2,3].includes(district))return {hours:3,name:'Modrá zóna',note:'Orientačně až 3 hodiny. Ověř konkrétní ulici.'};
+ return {hours:null,name:'Parkovací zóna',note:'Maximální délka parkování zde není ověřena.'};}
+function zoneColor(f){const z=zoneInfo(f);return z.hours===null?'#9298a0':z.hours>=Number($('hours').value)?'#22aa72':'#e86a6a';}
+function renderZones(){zoneLayer.clearLayers();zoneLayer=L.geoJSON({type:'FeatureCollection',features},{style:f=>({color:zoneColor(f),weight:3,opacity:.88,fillColor:zoneColor(f),fillOpacity:.22}),onEachFeature:(f,layer)=>layer.on('click',e=>{L.DomEvent.stopPropagation(e);selectedZone={lat:e.latlng.lat,lng:e.latlng.lng};navigationTarget=selectedZone;const z=zoneInfo(f);$('zoneTitle').textContent=z.name;$('zoneInfo').textContent='Aktuální čas v Praze: '+new Intl.DateTimeFormat('cs-CZ',{timeZone:'Europe/Prague',weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date())+'\nProvozní dny a hodiny regulace: NEOVĚŘENO.\nLimit návštěvníka: '+(z.hours===null?'neověřený':z.hours+' h (orientačně)')+'.\n'+z.note+' Neodvozuj bezplatné parkování ze soboty či víkendu. Rozhoduje značení na místě.'; $('zoneInfo').style.whiteSpace='pre-line';$('details').style.display='block';})}).addTo(map);}
+async function loadZones(){if(map.getZoom()<13){features=[];renderZones();status('Přibliž mapu pro zobrazení parkovacích zón.');return;}if(zoneAbort)zoneAbort.abort();zoneAbort=new AbortController();const token=++zoneToken,b=map.getBounds();const bb=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(',');try{let all=[],offset=0;for(let i=0;i<8;i++){const q=new URLSearchParams({where:'1=1',geometry:bb,geometryType:'esriGeometryEnvelope',inSR:'4326',outSR:'4326',spatialRel:'esriSpatialRelIntersects',outFields:'OBJECTID,ZPS_ID,TYPZONY,KODMC_T,TARIFTAB',returnGeometry:'true',f:'geojson',resultOffset:String(offset),resultRecordCount:'1000'});const r=await fetch(ZONE_API+'?'+q,{signal:zoneAbort.signal});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data.features))throw Error(data.error?.message||'Neplatná data');all.push(...data.features);offset+=data.features.length;if(data.features.length<1000&&!data.exceededTransferLimit)break;if(i===7)throw Error('Příliš mnoho úseků, přibliž mapu');}if(token===zoneToken){features=all;renderZones();status('Načteno '+features.length+' úseků. Délky stání jsou orientační.');}}catch(e){if(e.name!=='AbortError')status('Parkovací data nejsou dostupná: '+e.message);}}
+let zonesTimer;map.on('moveend',()=>{clearTimeout(zonesTimer);zonesTimer=setTimeout(loadZones,450);});$('hours').onchange=renderZones;
+function onPosition(p){const xy=[p.coords.latitude,p.coords.longitude];const first=!gpsPosition;gpsPosition={lat:xy[0],lng:xy[1]};if(!gpsMarker){gpsMarker=L.circleMarker(xy,{radius:9,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1}).addTo(map);}else gpsMarker.setLatLng(xy);if(routeActive)updateRouteProgress(p.coords.accuracy);if(follow){if(first)map.setView(xy,16);else map.panTo(xy,{animate:true});}}
+function gpsStart(){if(!navigator.geolocation){status('GPS není dostupná.');return;}follow=true;$('gps').textContent='◉';if(gpsWatch!==null){if(gpsPosition)map.setView(gpsPosition,16);return;}status('Zapínám GPS…');gpsWatch=navigator.geolocation.watchPosition(onPosition,e=>{status('GPS: '+e.message);if(e.code===1)gpsStop();},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});}
+function gpsStop(){if(gpsWatch!==null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;follow=false;$('gps').textContent='◎';}
+$('gps').onclick=()=>{if(gpsWatch===null||!follow)gpsStart();else gpsStop();};map.on('dragstart',()=>{follow=false;$('gps').textContent='◎';});
+function segmentProjection(pos,a,b){
+ const mx=111320*Math.cos(pos.lat*Math.PI/180), my=111320;
+ const ax=(a[1]-pos.lng)*mx,ay=(a[0]-pos.lat)*my;
+ const bx=(b[1]-pos.lng)*mx,by=(b[0]-pos.lat)*my;
+ const dx=bx-ax,dy=by-ay,length2=dx*dx+dy*dy;
+ const t=length2?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/length2)):0;
+ return {t,distance:Math.hypot(ax+t*dx,ay+t*dy),point:[a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])]};
 }
-
-function isExactMatch(query, f) {
-  const p = f.properties || {};
-  const k = kind(f);
-  const q = normalize(query);
-  const name = normalize(p.name || p.street || '');
-
-  if (!q) return false;
-
-  if (k === 'street' || k === 'area' || k === 'unknown') {
-    return q === name;
-  }
-
-  const number = (query.match(/\b\d+(?:\/\d+)?\b/) || [])[0];
-
-  if (k === 'address') {
-    const house = String(p.housenumber || '');
-
-    if (!number || !house) return false;
-
-    const nums = house.split('/');
-    const numberMatch =
-      house === number || nums.includes(number);
-
-    const street = normalize(p.street || p.name || '');
-    const queryStreet = normalize(query.replace(number, ''));
-
-    return numberMatch && !!street &&
-      (street === queryStreet || queryStreet.endsWith(street));
-  }
-
-  return k === 'poi' && q === name;
+function updateRouteProgress(accuracy=25){
+ if(!routeActive||!gpsPosition||!routeLayer||routePoints.length<2||accuracy>70)return;
+ let best=null;
+ for(let i=Math.max(0,Math.floor(routeProgress)-4);i<routePoints.length-1;i++){
+  const p=segmentProjection(gpsPosition,routePoints[i],routePoints[i+1]);
+  const progress=i+p.t;
+  // Prevent jumping ahead when route loops over itself.
+  const along=(routeCum[i]+p.t*(routeCum[i+1]-routeCum[i]))-(routeCum[Math.min(Math.floor(routeProgress),routeCum.length-1)]||0);
+  if(progress+0.001<routeProgress||along>450)continue;
+  if(!best||p.distance<best.distance)best={...p,index:i,progress};
+ }
+ if(!best||best.distance>Math.max(35,accuracy*1.5)){
+  $('instruction').hidden=false;
+  $('instruction').textContent='Poloha je mimo trasu nebo GPS není přesná. Trasu případně vypočítej znovu.';
+  return;
+ }
+ routeProgress=Math.max(routeProgress,best.progress);
+ const remaining=[best.point,...routePoints.slice(best.index+1)];
+ routeLayer.setLatLngs(remaining);
+ const meters=Math.max(0,routeTotalMeters-(routeCum[best.index]+best.t*(routeCum[best.index+1]-routeCum[best.index])));
+ const minutes=Math.ceil(routeDurationSeconds*(meters/Math.max(1,routeTotalMeters))/60);
+ $('summary').textContent='🚗 Zbývá '+(meters/1000).toFixed(1)+' km · přibližně '+minutes+' min';
+ $('instruction').textContent='GPS navigace bez přepočtu při odbočení a bez živého provozu.';
+ if(navigationTarget&&map.distance(gpsPosition,[navigationTarget.lat,navigationTarget.lng])<30&&accuracy<=35){$('instruction').textContent='Jsi poblíž cíle.';}
 }
-
-function suggestionNeedsConfirmation(query, f) {
-  const k = kind(f);
-
-  if (k === 'street' || k === 'area') return false;
-
-  return !isExactMatch(query, f);
+async function routeTo(to){
+ if(!gpsPosition){status('Nejdřív zapni GPS a počkej na polohu, potom znovu stiskni Trasa.');gpsStart();return;}
+ const token=++routeCall;
+ navigationTarget=to;
+ status('Počítám trasu autem…');
+ try{
+  const from=gpsPosition;
+  const url='https://router.project-osrm.org/route/v1/driving/'+from.lng+','+from.lat+';'+to.lng+','+to.lat+'?overview=full&geometries=geojson&steps=false';
+  const r=await fetch(url);
+  if(!r.ok)throw Error('HTTP '+r.status);
+  const data=await r.json();
+  if(data.code!=='Ok'||!data.routes?.length)throw Error('Trasa nenalezena');
+  if(token!==routeCall)return;
+  const route=data.routes[0];
+  if(routeLayer)map.removeLayer(routeLayer);
+  routePoints=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+  routeCum=[0];
+  for(let i=1;i<routePoints.length;i++)routeCum.push(routeCum[i-1]+map.distance(routePoints[i-1],routePoints[i]));
+  routeTotalMeters=routeCum.at(-1);
+  routeDurationSeconds=route.duration;
+  routeProgress=0;
+  routeLayer=L.polyline(routePoints,{color:'#1a73e8',weight:7,opacity:.9,lineCap:'round',lineJoin:'round'}).addTo(map);
+  routeActive=true;follow=true;$('gps').textContent='◉';
+  $('instruction').hidden=false;
+  $('instruction').textContent='Orientační navigace; bez hlasu, živého provozu a automatického přepočtu.';
+  $('stopRoute').hidden=false;
+  $('summary').textContent='🚗 '+(route.distance/1000).toFixed(1)+' km · '+Math.ceil(route.duration/60)+' min';
+  map.setView([gpsPosition.lat,gpsPosition.lng],17,{animate:true});
+  updateRouteProgress(25);
+  status('Navigace aktivní. Projetá trasa postupně mizí.');
+ }catch(e){if(token===routeCall)status('Trasu se nepodařilo vypočítat: '+e.message);}
 }
-
-function showConfirm(f, query) {
-  const name = label(f);
-
-  $('dialogText').textContent =
-    'Pro „' + query + '“ jsem našel „' +
-    name.main +
-    (name.sub ? ' – ' + name.sub : '') +
-    '“. Je to správné místo?';
-
-  $('dialogBackdrop').style.display = 'flex';
-
-  $('dialogYes').onclick = () => {
-    $('dialogBackdrop').style.display = 'none';
-    selectPlace(f);
-  };
-
-  $('dialogNo').onclick = () => {
-    $('dialogBackdrop').style.display = 'none';
-
-    status(
-      'Cíl nebyl potvrzen. Vyber jiný výsledek nebo zkus přesnější adresu.'
-    );
-
-    $('address').focus();
-  };
+function stopRoute(){
+ routeCall++;if(routeLayer)map.removeLayer(routeLayer);
+ routeLayer=null;routePoints=[];routeCum=[];routeProgress=0;routeActive=false;
+ $('stopRoute').hidden=true;$('instruction').textContent='';$('instruction').hidden=true;
+ $('summary').textContent=destination?'📍 '+destination.label:'Vyber cíl nebo zapni GPS';
 }
-
-function selectResult(f, originalQuery) {
-  if (suggestionNeedsConfirmation(originalQuery, f)) {
-    showConfirm(f, originalQuery);
-  } else {
-    selectPlace(f);
-  }
-}
-
-function selectPlace(f) {
-  const coords = f.geometry?.coordinates;
-
-  if (!coords || coords.length < 2) return;
-
-  closeSuggestions();
-  $('address').blur();
-
-  const k = kind(f);
-  const [lng, lat] = coords;
-
-  if (destinationMarker) map.removeLayer(destinationMarker);
-  if (destinationCircle) map.removeLayer(destinationCircle);
-
-  destinationMarker = null;
-  destinationCircle = null;
-destination = null;
-selectedZone = null;
-
-stopRoute();
-
-  const info = label(f);
-  $('address').value = info.main;
-
-  if (k === 'address' || k === 'poi') {
-    destination = {lat, lng, label: info.main};
-
-    destinationMarker = L.marker([lat, lng], {
-      icon: L.divIcon({
-        className: 'dest',
-        iconSize: [23, 23],
-        iconAnchor: [11, 11]
-      })
-    }).addTo(map);
-
-    destinationCircle = L.circle([lat, lng], {
-      radius: 35,
-      color: '#ea4335',
-      weight: 2,
-      fillColor: '#ea4335',
-      fillOpacity: .13
-    }).addTo(map);
-
-    destinationMarker
-      .bindPopup('Cíl: ' + info.main)
-      .openPopup();
-
-    $('summary').textContent = '📍 ' + info.main;
-
-    status(
-      'Cíl označen červeně. Pro navigaci stiskni Trasa.'
-    );
-  } else {
-    $('summary').textContent =
-      k === 'street'
-      ? 'Ulice: ' + info.main
-      : 'Lokalita: ' + info.main;
-
-    status(
-      'Zobrazuji oblast bez přesného cílového bodu.'
-    );
-  }
-
-  map.setView([lat, lng], 17);
-}
-
-function renderSuggestions(list, query) {
-  currentSuggestions = list;
-  lastSuggestionQuery = query;
-
-  const box = $('suggestions');
-  box.replaceChildren();
-
-  if (!list.length) {
-    closeSuggestions();
-    return;
-  }
-
-  list.forEach((f, i) => {
-    const l = label(f);
-    const b = document.createElement('button');
-
-    b.className = 'suggestion';
-    b.type = 'button';
-    b.setAttribute('role', 'option');
-    b.setAttribute('aria-label', l.main);
-
-    const strong = document.createElement('strong');
-    strong.textContent = (i === 0 ? '📍 ' : '') + l.main;
-
-    const sub = document.createElement('span');
-
-    sub.textContent =
-      (l.sub ? l.sub + ' · ' : '') +
-      ({
-        address: 'Adresa',
-        poi: 'Podnik / místo',
-        street: 'Ulice',
-        area: 'Oblast',
-        unknown: 'Neověřené místo'
-      }[kind(f)]);
-
-    b.append(strong, sub);
-    b.onclick = () => selectResult(f, query);
-
-    box.appendChild(b);
-  });
-
-  box.style.display = 'block';
-}
-
-async function photonSearch(query, showList = true) {
-  if (searchAbort) searchAbort.abort();
-
-  searchAbort = new AbortController();
-
-  const token = ++searchToken;
-  const elapsed = Date.now() - lastSearchAt;
-
-  if (elapsed < 1050) {
-    await new Promise(r => setTimeout(r, 1050 - elapsed));
-  }
-
-  if (token !== searchToken) return [];
-
-const params = new URLSearchParams({
-  q: query,
-  limit: '8',
-  lat: '50.08',
-  lon: '14.43'
-});
-
-  lastSearchAt = Date.now();
-
-  const r = await fetch(PHOTON + '?' + params, {
-    signal: searchAbort.signal
-  });
-
-if (!r.ok) {
-  const errorText = await r.text();
-
-  console.error('Photon API:', {
-    status: r.status,
-    url: r.url,
-    response: errorText
-  });
-
-  throw Error(
-    'Vyhledávání selhalo (' + r.status + '). ' +
-    errorText.slice(0, 150)
-  );
-}
-
-  const data = await r.json();
-
-  if (token !== searchToken) return [];
-
-  const raw = (data.features || []).filter(
-    f => Array.isArray(f.geometry?.coordinates)
-  );
-
-  const local = raw.filter(
-    f => isPrague(f.properties || {})
-  );
-
-  const found = local.length ? local : raw;
-
-  if (showList) renderSuggestions(found, query);
-
-  return found;
-}
-
-$('address').addEventListener('input', () => {
-  clearTimeout(searchTimer);
-
-  const query = $('address').value.trim();
-
-  if (query.length < 3) {
-    if (searchAbort) searchAbort.abort();
-
-    searchToken++;
-    currentSuggestions = [];
-    closeSuggestions();
-    return;
-  }
-
-  searchTimer = setTimeout(async () => {
-    try {
-      await photonSearch(query, true);
-    } catch (e) {
-      if (e.name !== 'AbortError') {
-        status(
-          'Našeptávání není dostupné: ' + e.message
-        );
-      }
-    }
-  }, 550);
-});
-
-async function performSearch() {
-  clearTimeout(searchTimer);
-
-  const query = $('address').value.trim();
-
-  if (query.length < 2) {
-    status('Zadej název nebo adresu.');
-    return;
-  }
-
-  if (
-    currentSuggestions.length &&
-    query === lastSuggestionQuery
-  ) {
-    selectResult(currentSuggestions[0], query);
-    return;
-  }
-
-  status('Vyhledávám „' + query + '“…');
-
-  try {
-    const result = await photonSearch(query, true);
-
-    if (!result.length) {
-      closeSuggestions();
-
-      status(
-        '⚠️ Místo nebylo nalezeno. Zkus jiný název nebo adresu.'
-      );
-
-      $('summary').textContent = 'Místo nenalezeno';
-      return;
-    }
-
-    selectResult(result[0], query);
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      status('⚠️ Vyhledávání selhalo: ' + e.message);
-    }
-  }
-}
-
-$('search').onclick = performSearch;
-
-$('address').addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    performSearch();
-  } else if (e.key === 'Escape') {
-    closeSuggestions();
-    $('address').blur();
-  }
-});
-
-$('clearSearch').onclick = () => {
-  $('address').value = '';
-
-  currentSuggestions = [];
-  lastSuggestionQuery = '';
-
-  clearTimeout(searchTimer);
-
-  if (searchAbort) searchAbort.abort();
-  searchToken++;
-
-  closeSuggestions();
-
-  $('dialogBackdrop').style.display = 'none';
-
-  if (destinationMarker) {
-    map.removeLayer(destinationMarker);
-  }
-
-  if (destinationCircle) {
-    map.removeLayer(destinationCircle);
-  }
-
-  destinationMarker = null;
-  destinationCircle = null;
-  destination = null;
-
-  stopRoute();
-
-  $('summary').textContent =
-    'Vyber cíl nebo zapni GPS';
-
-  status('Hledání vymazáno.');
+$('navigate').onclick=()=>{
+ const target=navigationTarget||destination||selectedZone;
+ if(!target){status('Nejdřív vyber cíl hledáním nebo klepnutím na mapu.');return;}
+ routeTo(target);
 };
-
-// PARKOVACÍ ZÓNY
-
-function zoneInfo(f) {
-  const p = f.properties || {};
-  const t = String(p.TYPZONY || '');
-  const d = String(p.KODMC_T || '');
-
-  const match = d.match(
-    /(?:Praha[\s-]*|^)(\d{1,2})$/i
-  );
-
-  const district = match
-    ? Number(match[1])
-    : null;
-
-  if (t === '2') {
-    return {
-      hours: 24,
-      name: 'Fialová zóna',
-      note:
-        'Orientačně až 24 hodin pro návštěvníka. ' +
-        'Ověř místní značku a provozní dobu.'
-    };
-  }
-
-  if (t === '1' && district === 1) {
-    return {
-      hours: 1,
-      name: 'Modrá zóna',
-      note:
-        'Orientačně maximálně 1 hodina pro návštěvníka.'
-    };
-  }
-
-  if (t === '1' && [2, 3].includes(district)) {
-    return {
-      hours: 3,
-      name: 'Modrá zóna',
-      note:
-        'Orientačně až 3 hodiny. Ověř konkrétní ulici.'
-    };
-  }
-
-  return {
-    hours: null,
-    name: 'Parkovací zóna',
-    note:
-      'Maximální délka parkování zde není ověřena.'
-  };
-}
-
-function zoneColor(f) {
-  const z = zoneInfo(f);
-
-  if (z.hours === null) return '#9298a0';
-
-  return z.hours >= Number($('hours').value)
-    ? '#22aa72'
-    : '#e86a6a';
-}
-
-function renderZones() {
-  zoneLayer.clearLayers();
-
-  zoneLayer = L.geoJSON({
-    type: 'FeatureCollection',
-    features
-  }, {
-    style: f => ({
-      color: zoneColor(f),
-      weight: 3,
-      opacity: .88,
-      fillColor: zoneColor(f),
-      fillOpacity: .22
-    }),
-
-    onEachFeature: (f, layer) => {
-      layer.on('click', e => {
-        selectedZone = {
-          lat: e.latlng.lat,
-          lng: e.latlng.lng
-        };
-
-        const z = zoneInfo(f);
-
-        $('zoneTitle').textContent = z.name;
-
-        $('zoneInfo').textContent =
-          z.note +
-          ' Upozornění: údaje aplikace nejsou právně ověřené; ' +
-          'rozhoduje dopravní značení.';
-
-        $('details').style.display = 'block';
-      });
-    }
-  }).addTo(map);
-}
-
-async function loadZones() {
-  if (map.getZoom() < 13) {
-    features = [];
-    renderZones();
-
-    status(
-      'Přibliž mapu pro zobrazení parkovacích zón.'
-    );
-    return;
-  }
-
-  if (zoneAbort) zoneAbort.abort();
-
-  zoneAbort = new AbortController();
-
-  const token = ++zoneToken;
-  const b = map.getBounds();
-
-  const bb = [
-    b.getWest(),
-    b.getSouth(),
-    b.getEast(),
-    b.getNorth()
-  ].join(',');
-
-  try {
-    let all = [];
-    let offset = 0;
-
-    for (let i = 0; i < 8; i++) {
-      const q = new URLSearchParams({
-        where: '1=1',
-        geometry: bb,
-        geometryType: 'esriGeometryEnvelope',
-        inSR: '4326',
-        outSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        outFields:
-          'OBJECTID,ZPS_ID,TYPZONY,KODMC_T,TARIFTAB',
-        returnGeometry: 'true',
-        f: 'geojson',
-        resultOffset: String(offset),
-        resultRecordCount: '1000'
-      });
-
-      const r = await fetch(ZONE_API + '?' + q, {
-        signal: zoneAbort.signal
-      });
-
-      if (!r.ok) throw Error('HTTP ' + r.status);
-
-      const data = await r.json();
-
-      if (!Array.isArray(data.features)) {
-        throw Error(
-          data.error?.message || 'Neplatná data'
-        );
-      }
-
-      all.push(...data.features);
-      offset += data.features.length;
-
-      if (
-        data.features.length < 1000 &&
-        !data.exceededTransferLimit
-      ) break;
-
-      if (i === 7) {
-        throw Error(
-          'Příliš mnoho úseků, přibliž mapu'
-        );
-      }
-    }
-
-    if (token === zoneToken) {
-      features = all;
-      renderZones();
-
-      status(
-        'Načteno ' + features.length +
-        ' úseků. Délky stání jsou orientační.'
-      );
-    }
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      status(
-        'Parkovací data nejsou dostupná: ' +
-        e.message
-      );
-    }
-  }
-}
-
-let zonesTimer;
-
-map.on('moveend', () => {
-  clearTimeout(zonesTimer);
-  zonesTimer = setTimeout(loadZones, 450);
+$('stopRoute').onclick=()=>{stopRoute();status('Trasa ukončena, poloha a cíl zůstávají.');};
+$('routeHere').onclick=()=>{if(selectedZone){$('details').style.display='none';routeTo(selectedZone);}};
+$('closeDetails').onclick=()=>{$('details').style.display='none';};
+map.on('click',e=>{
+ if($('details').style.display==='block')return;
+ // Click on zones also opens details (Leaflet events may propagate).
+ selectedZone={lat:e.latlng.lat,lng:e.latlng.lng};
+ navigationTarget=selectedZone;
+ $('summary').textContent='📍 Vybraný bod na mapě';
+ status('Bod vybrán. Stiskni Trasa.');
 });
-
-$('hours').onchange = renderZones;
-
-// GPS
-
-function onPosition(p) {
-  const xy = [
-    p.coords.latitude,
-    p.coords.longitude
-  ];
-
-  const first = !gpsPosition;
-
-  gpsPosition = {
-    lat: xy[0],
-    lng: xy[1]
-  };
-
-  if (!gpsMarker) {
-    gpsMarker = L.circleMarker(xy, {
-      radius: 9,
-      color: '#fff',
-      weight: 3,
-      fillColor: '#1a73e8',
-      fillOpacity: 1
-    }).addTo(map);
-  } else {
-    gpsMarker.setLatLng(xy);
-  }
-
-  if (follow) {
-    if (first) {
-      map.setView(xy, 16);
-    } else {
-      map.panTo(xy, {animate: true});
-    }
-  }
-}
-
-function gpsStart() {
-  if (!navigator.geolocation) {
-    status('GPS není dostupná.');
-    return;
-  }
-
-  follow = true;
-  $('gps').textContent = '◉';
-
-  if (gpsWatch !== null) {
-    if (gpsPosition) {
-      map.setView(gpsPosition, 16);
-    }
-    return;
-  }
-
-  status('Zapínám GPS…');
-
-  gpsWatch = navigator.geolocation.watchPosition(
-    onPosition,
-    e => {
-      status('GPS: ' + e.message);
-
-      if (e.code === 1) gpsStop();
-    },
-    {
-      enableHighAccuracy: true,
-      maximumAge: 1000,
-      timeout: 15000
-    }
-  );
-}
-
-function gpsStop() {
-  if (gpsWatch !== null) {
-    navigator.geolocation.clearWatch(gpsWatch);
-  }
-
-  gpsWatch = null;
-  follow = false;
-  $('gps').textContent = '◎';
-}
-
-$('gps').onclick = () => {
-  if (gpsWatch === null || !follow) {
-    gpsStart();
-  } else {
-    gpsStop();
-  }
-};
-
-map.on('dragstart', () => {
-  follow = false;
-  $('gps').textContent = '◎';
-});
-
-// NAVIGACE
-
-async function routeTo(to) {
-  if (!gpsPosition) {
-    status(
-      'Nejdřív zapni GPS a počkej na určení polohy.'
-    );
-
-    gpsStart();
-    return;
-  }
-
-  const from = gpsPosition;
-
-  status('Počítám automobilovou trasu…');
-
-  try {
-    const url =
-      'https://router.project-osrm.org/route/v1/driving/' +
-      from.lng + ',' + from.lat + ';' +
-      to.lng + ',' + to.lat +
-      '?overview=full&geometries=geojson&steps=false';
-
-    const r = await fetch(url);
-
-    if (!r.ok) {
-      throw Error('HTTP ' + r.status);
-    }
-
-    const data = await r.json();
-
-    if (
-      data.code !== 'Ok' ||
-      !data.routes?.length
-    ) {
-      throw Error('Trasa nebyla nalezena');
-    }
-
-    const route = data.routes[0];
-
-    if (routeLayer) {
-      map.removeLayer(routeLayer);
-    }
-
-    routeLayer = L.geoJSON(route.geometry, {
-      style: {
-        color: '#1a73e8',
-        weight: 7,
-        opacity: .85
-      }
-    }).addTo(map);
-
-    $('summary').textContent =
-      '🚗 ' +
-      (route.distance / 1000).toFixed(1) +
-      ' km · přibližně ' +
-      Math.round(route.duration / 60) + ' min';
-
-    $('instruction').hidden = false;
-
-    $('instruction').textContent =
-      'Orientační trasa bez živého provozu a hlasových pokynů.';
-
-    $('stopRoute').hidden = false;
-
-    map.fitBounds(
-      routeLayer.getBounds(),
-      {padding: [55, 55]}
-    );
-
-    status(
-      'Trasa vykreslena. Řidič aplikaci ovládá pouze po zastavení.'
-    );
-  } catch (e) {
-    status(
-      'Trasu se nepodařilo vypočítat: ' +
-      e.message
-    );
-  }
-}
-
-function stopRoute() {
-  if (routeLayer) {
-    map.removeLayer(routeLayer);
-  }
-
-  routeLayer = null;
-
-  $('stopRoute').hidden = true;
-  $('instruction').textContent = '';
-  $('instruction').hidden = true;
-
-  $('summary').textContent = destination
-    ? '📍 ' + destination.label
-    : 'Vyber cíl nebo zapni GPS';
-}
-
-$('navigate').onclick = () => {
-  const target = destination || selectedZone;
-
-  if (!target) {
-    status('Nejdřív vyber cíl na mapě nebo vyhledej adresu.');
-    return;
-  }
-
-  routeTo(target);
-};
-
-$('stopRoute').onclick = () => {
-  stopRoute();
-
-  status(
-    'Trasa ukončena. Cíl, GPS a zóny zůstávají na mapě.'
-  );
-};
-
-$('routeHere').onclick = () => {
-  if (selectedZone) {
-    $('details').style.display = 'none';
-    routeTo(selectedZone);
-  }
-};
-
-$('closeDetails').onclick = () => {
-  $('details').style.display = 'none';
-};
-
-map.on('click', e => {
-  // Kliknutí na parkovací zónu má vlastní obsluhu.
-  // Proto nebudeme nahrazovat již vybraný úsek.
-  if ($('details').style.display === 'block') return;
-
-  selectedZone = {
-    lat: e.latlng.lat,
-    lng: e.latlng.lng
-  };
-
-  $('summary').textContent = '📍 Vybrané místo na mapě';
-
-  status('Místo vybráno. Stiskni Trasa pro navigaci.');
-});
- 
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
 loadZones();
-
 </script>
 </body>
 </html>
